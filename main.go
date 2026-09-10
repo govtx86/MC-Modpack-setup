@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"slices"
 	"strings"
 	"time"
 )
@@ -40,7 +39,7 @@ func main() {
 			return
 		}
 		versionlist = append(versionlist, version)
-		fmt.Printf("Version info: %s, %s\n", mod.slug, version[0].ID)
+		fmt.Printf("Version info: %s, %s\n", mod.slug, version[0].Files[0].URL)
 	}
 }
 
@@ -52,17 +51,16 @@ func ReadModList(filename string) (ModList, error) {
 	defer file.Close()
 
 	var mods ModList
+	unique := make(map[string]bool)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		slug := strings.Split(scanner.Text(), "/")[4]
-		if !slices.Contains(mods, struct {
-			slug   string
-			status string
-		}{slug, "pending"}) {
+		if !unique[slug] {
 			mods = append(mods, struct {
 				slug   string
 				status string
 			}{slug, "pending"})
+			unique[slug] = true
 		}
 	}
 	return mods, scanner.Err()
