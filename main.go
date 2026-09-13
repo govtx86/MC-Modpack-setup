@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -94,7 +95,11 @@ type VersionResponse []struct {
 }
 
 func GetVersionInfo(slug, loader, gameversion string) (VersionResponse, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://api.modrinth.com/v2/project/%s/version?loaders=['%s']&game_versions=['%s']", slug, loader, gameversion), nil)
+	params := url.Values{}
+	params.Add("loaders", fmt.Sprintf("[%s]", loader))
+	params.Add("game_versions", fmt.Sprintf("[%s]", gameversion))
+	fmt.Println(params.Encode())
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://api.modrinth.com/v2/project/%s/version?", slug) + params.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}
