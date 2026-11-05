@@ -21,9 +21,10 @@ type Mod struct {
 }
 
 func main() {
-	var gameversion, loader, filename string
+	var gameversion, loader, environment, filename string
 	flag.StringVar(&gameversion, "version", "26.2", "game version")
 	flag.StringVar(&loader, "loader", "fabric", "modloader")
+	flag.StringVar(&environment, "environment", "server", "client or server")
 	flag.StringVar(&filename, "filename", "modlist.txt", "name of file containing modlist")
 
 	flag.Parse()
@@ -37,15 +38,18 @@ func main() {
 		return
 	}
 	for _, mod := range modlist {
-		fmt.Printf("Slug: %s, %s\n", mod.slug, mod.status)
+		// fmt.Printf("Slug: %s, %s\n", mod.slug, mod.status)
 		version, err := GetVersionInfo(mod.slug, loader, gameversion)
+		if !isCurrentEnv(environment, version[0].Environment) {
+			continue
+		}
 		if err != nil {
 			fmt.Printf("Failed to get version info: %s\n", err)
 			return
 		}
 		versionlist = append(versionlist, version[0])
 		// fmt.Printf("%s ", version[0].Files[0].URL)
-		fmt.Printf("Version info: %s, %s\n", mod.slug, version[0].Files[0].URL)
+		fmt.Printf("Version info: %s, %s, %s\n", mod.slug, version[0].Environment, version[0].Files[0].URL)
 		for _, dep := range version[0].Dependencies {
 			if dep.DependencyType == "required" && !unique_deps[dep.ProjectID] {
 				fmt.Printf("Dependency: %s\n", dep.ProjectID)
@@ -56,9 +60,21 @@ func main() {
 				}
 				deplist = append(deplist, depversion[0])
 				unique_deps[dep.ProjectID] = true
-				fmt.Printf("Dependency version info: %s, %s\n", mod.slug, depversion[0].Files[0].URL)
+				fmt.Printf("Dependency version info: %s, %s, %s\n", mod.slug, depversion[0].Environment, depversion[0].Files[0].URL)
 			}
 		}
+	}
+}
+
+func isCurrentEnv(envflag string, env string) bool {
+	envflag = strings.ToLower(envflag)
+	switch env {
+	case "client_only":
+		return envflag == "client"
+	case "server_only", "dedicated_server_only":
+		return envflag == "server"
+	default:
+		return true
 	}
 }
 
@@ -73,7 +89,7 @@ func ReadModList(filename string) ([]Mod, error) {
 	unique_mods := make(map[string]bool)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		if scanner.Text() != "" {			
+		if scanner.Text() != "" {
 			slug := GetSlug(scanner.Text())
 			if !unique_mods[slug] {
 				mods = append(mods, Mod{
