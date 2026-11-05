@@ -40,6 +40,10 @@ func main() {
 	for _, mod := range modlist {
 		// fmt.Printf("Slug: %s, %s\n", mod.slug, mod.status)
 		version, err := GetVersionInfo(mod.slug, loader, gameversion)
+		if len(version) == 0 {
+			fmt.Printf("No compatible version found for %s\n", mod.slug)
+			continue
+		}
 		if !isCurrentEnv(environment, version[0].Environment) {
 			continue
 		}
@@ -54,6 +58,9 @@ func main() {
 			if dep.DependencyType == "required" && !unique_deps[dep.ProjectID] {
 				fmt.Printf("Dependency: %s\n", dep.ProjectID)
 				depversion, err := GetVersionInfo(dep.ProjectID, loader, gameversion)
+				if len(depversion) == 0 {
+					continue
+				}
 				if err != nil {
 					fmt.Printf("Failed to get version info: %s\n", err)
 					return
